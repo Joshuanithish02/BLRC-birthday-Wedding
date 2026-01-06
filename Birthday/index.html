@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Blessed Life revival Church</title>
+  <link rel="icon" type="image/png" href="CHURCH LOGO.png">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+<div class="container">
+  <h1>BLESSED LIFE REVIVAL CHURCH</h1>
+
+  <!-- Add Birthday -->
+  <div class="card">
+    <h3>BIRTHDAY</h3>
+    <input id="bName" placeholder="Name">
+    <input id="bDate" type="date">
+    <button onclick="addBirthday()">Add Birthday</button>
+  </div>
+
+  <!-- Add Wedding -->
+  <div class="card">
+    <h3>WEDDING</h3>
+    <input id="wName" placeholder="Couple Name">
+    <input id="wDate" type="date">
+    <button onclick="addWedding()">Add Wedding</button>
+  </div>
+
+  <!-- Filter -->
+  <select id="monthSelect">
+    <option value="all">All Months</option>
+  </select>
+
+  <br><br>
+
+  <button onclick="showBirthdays()">Show Birthdays</button>
+  <button onclick="showWeddings()">Show Weddings</button>
+
+  <!-- RESULT -->
+  <div id="result"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+
+
+<script>
+
+// ======================= STORAGE KEYS =======================
+const BIRTHDAY_KEY = "church_birthdays";
+const WEDDING_KEY = "church_weddings";
+
+// ======================= DATA =======================
+let birthdays = JSON.parse(localStorage.getItem(BIRTHDAY_KEY)) || [];
+let weddings = JSON.parse(localStorage.getItem(WEDDING_KEY)) || [];
+
+// ======================= DOM READY =======================
+document.addEventListener("DOMContentLoaded", () => {
+  initMonthDropdown();
+});
+
+// ======================= SAVE FUNCTIONS =======================
+function saveBirthdays() {
+  localStorage.setItem(BIRTHDAY_KEY, JSON.stringify(birthdays));
+}
+
+function saveWeddings() {
+  localStorage.setItem(WEDDING_KEY, JSON.stringify(weddings));
+}
+
+// ======================= ADD FUNCTIONS =======================
+function addBirthday() {
+  const name = document.getElementById("bName").value.trim();
+  const date = document.getElementById("bDate").value;
+
+  if (!name || !date) {
+    alert("Please enter name and date of birth");
+    return;
+  }
+
+  birthdays.push({ name, date });
+  saveBirthdays();
+
+  document.getElementById("bName").value = "";
+  document.getElementById("bDate").value = "";
+  alert("Birthday saved");
+}
+
+function addWedding() {
+  const name = document.getElementById("wName").value.trim();
+  const date = document.getElementById("wDate").value;
+
+  if (!name || !date) {
+    alert("Please enter couple name and wedding date");
+    return;
+  }
+
+  weddings.push({ name, date });
+  saveWeddings();
+
+  document.getElementById("wName").value = "";
+  document.getElementById("wDate").value = "";
+  alert("Wedding saved");
+}
+
+// ======================= VIEW FUNCTIONS =======================
+function showBirthdays() {
+  const result = document.getElementById("result");
+  result.innerHTML = `<h2 style="color:white;margin-top:40px">🎂 Birthday List</h2>`;
+  renderBirthdays(birthdays);
+}
+
+function showWeddings() {
+  const result = document.getElementById("result");
+  result.innerHTML = `<h2 style="color:white;margin-top:40px">💍 Wedding Anniversary List</h2>`;
+  renderWeddings(weddings);
+}
+
+// ======================= BIRTHDAY RENDER =======================
+function renderBirthdays(data) {
+  renderByMonth(
+    data,
+    (d) => {
+      const dob = new Date(d.date);
+      const today = new Date();
+
+      // Age
+      let age = today.getFullYear() - dob.getFullYear();
+      const birthdayThisYear = new Date(
+        today.getFullYear(),
+        dob.getMonth(),
+        dob.getDate()
+      );
+      if (today < birthdayThisYear) age--;
+
+      // Next birthday only
+      let nextBirthday = new Date(
+        today.getFullYear(),
+        dob.getMonth(),
+        dob.getDate()
+      );
+      if (nextBirthday < today) {
+        nextBirthday.setFullYear(today.getFullYear() + 1);
+      }
+
+      const daysToGo = Math.ceil(
+        (nextBirthday - today) / (1000 * 60 * 60 * 24)
+      );
+
+      return `
+        <tr>
+          <td>${d.name}</td>
+          <td>${dob.toLocaleDateString()}</td>
+          <td>${age}</td>
+          <td>${daysToGo} days</td>
+        </tr>
+      `;
+    },
+    ["Name", "Date of Birth", "Age", "Days To Go"]
+  );
+}
+
+// ======================= WEDDING RENDER =======================
+function renderWeddings(data) {
+  renderByMonth(
+    data,
+    (d) => {
+      const weddingDate = new Date(d.date);
+      const today = new Date();
+
+      let years = today.getFullYear() - weddingDate.getFullYear();
+      const anniversaryThisYear = new Date(
+        today.getFullYear(),
+        weddingDate.getMonth(),
+        weddingDate.getDate()
+      );
+      if (today < anniversaryThisYear) years--;
+
+      return `
+        <tr>
+          <td>${d.name}</td>
+          <td>${weddingDate.toLocaleDateString()}</td>
+          <td>${years} years</td>
+        </tr>
+      `;
+    },
+    ["Couple Name", "Wedding Date", "Years Together"]
+  );
+}
+
+// ======================= COMMON MONTH RENDER =======================
+function renderByMonth(data, rowFn, headers) {
+  const result = document.getElementById("result");
+  const select = document.getElementById("monthSelect");
+  const selectedMonth = select ? select.value : "all";
+
+  const months = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+  let found = false;
+
+  months.forEach((month, index) => {
+    if (selectedMonth !== "all" && Number(selectedMonth) !== index) return;
+
+    const filtered = data.filter(
+      d => new Date(d.date).getMonth() === index
+    );
+
+    if (filtered.length > 0) {
+      found = true;
+      result.innerHTML += `
+        <div class="month">
+          <h3>${month}</h3>
+          <table>
+            <tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr>
+            ${filtered.map(rowFn).join("")}
+          </table>
+        </div>
+      `;
+    }
+  });
+
+  if (!found) {
+    result.innerHTML += `<p style="color:white">No records found</p>`;
+  }
+}
+
+// ======================= MONTH DROPDOWN INIT =======================
+function initMonthDropdown() {
+  const select = document.getElementById("monthSelect");
+  if (!select) return;
+
+  const months = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+  months.forEach((month, index) => {
+    const option = document.createElement("option");
+    option.value = index;
+    option.textContent = month;
+    select.appendChild(option);
+  });
+}
+
+
+</script>
+</html>
